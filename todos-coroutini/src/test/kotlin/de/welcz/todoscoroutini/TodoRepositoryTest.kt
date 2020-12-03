@@ -13,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest
 class TodoRepositoryTest(private val sut: TodoRepository) : DescribeSpec({
   val aTodo = Arb.string().map { Todo(title = it) }
 
-  describe("Persistence tests for todos") {
+  describe("Persistence for todos") {
     it("can be saved") {
       checkAll(aTodo) { toSave ->
         val saved = sut.save(toSave)

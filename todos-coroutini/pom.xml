@@ -17,6 +17,7 @@
   <properties>
     <java.version>11</java.version>
     <kotlin.version>1.4.10</kotlin.version>
+    <kotest.version>4.3.1</kotest.version>
   </properties>
 
   <dependencies>
@@ -83,25 +84,31 @@
     <dependency>
       <groupId>io.kotest</groupId>
       <artifactId>kotest-runner-junit5-jvm</artifactId>
-      <version>4.3.1</version>
+      <version>${kotest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.kotest</groupId>
       <artifactId>kotest-assertions-core-jvm</artifactId>
-      <version>4.3.1</version>
+      <version>${kotest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.kotest</groupId>
       <artifactId>kotest-property-jvm</artifactId>
-      <version>4.3.1</version>
+      <version>${kotest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.kotest</groupId>
       <artifactId>kotest-extensions-spring-jvm</artifactId>
-      <version>4.3.1</version>
+      <version>${kotest.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.kotest</groupId>
+      <artifactId>kotest-assertions-json-jvm</artifactId>
+      <version>${kotest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>

@@ -1,10 +1,13 @@
-package de.welcz.todoscoroutini;
+package de.welcz.todoscoroutini
 
 import com.ninjasquad.springmockk.MockkBean
+import io.kotest.assertions.json.shouldMatchJson
 import io.kotest.core.spec.style.DescribeSpec
+import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coJustRun
-import kotlinx.coroutines.flow.asFlow
+import io.mockk.coVerify
+import kotlinx.coroutines.flow.flow
 import org.bson.types.ObjectId
 import org.intellij.lang.annotations.Language
 import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest
@@ -15,18 +18,20 @@ import org.springframework.test.web.reactive.server.expectBody
 
 @WebFluxTest(controllers = [Controller::class])
 @EnableHypermediaSupport(type = [EnableHypermediaSupport.HypermediaType.HAL])
-class ControllerTest(private val webTestClient: WebTestClient,
-                     @MockkBean private val repository: TodoRepository) : DescribeSpec({
+class ControllerTest(
+  private val webTestClient: WebTestClient,
+  @MockkBean private val repository: TodoRepository
+) : DescribeSpec({
   val root = "/api/v1/todos"
+
+  beforeAny { clearMocks(repository) }
 
   describe("API tests for /todos") {
     describe("GET /todos/{id} endpoint") {
       it("finds existing entity") {
-        val id = ObjectId("5fbab3f8d5189026901ffb78")
+        val id = ObjectId.get()
         val todo = Todo(id, "Learn Kotlin")
-
-        @Language("JSON")
-        val expected = """{"title":"Learn Kotlin","_links":{"self":{"href":"/api/v1/todos/5fbab3f8d5189026901ffb78"}}}"""
+        val expected = todo.toJson(root)
         coEvery { repository.findById(id) } returns todo
 
         val response = webTestClient
@@ -35,7 +40,7 @@ class ControllerTest(private val webTestClient: WebTestClient,
           .exchange()
 
         response.expectStatus().isOk
-        response.expectBody().json(expected)
+        response.shouldHaveJsonBody(expected)
       }
       it("returns not found for not existing entities") {
         val id = ObjectId("5fbab5d2f420c43153a207f1")
@@ -53,9 +58,8 @@ class ControllerTest(private val webTestClient: WebTestClient,
     describe("POST /todos") {
       it("saves new entity") {
         val toInsert = Todo(title = "Plz save me")
-        val saved = toInsert.copy(id = ObjectId("5fbab3f8d5189026901ffb78"))
-        @Language("JSON")
-        val expected = """{"title":"Plz save me","_links":{"self":{"href":"/api/v1/todos/5fbab3f8d5189026901ffb78"}}}"""
+        val saved = toInsert.copy(id = ObjectId.get())
+        val expected = saved.toJson(root)
         coEvery { repository.save(toInsert) } returns saved
 
         val response = webTestClient
@@ -66,7 +70,45 @@ class ControllerTest(private val webTestClient: WebTestClient,
           .exchange()
 
         response.expectStatus().isCreated
-        response.expectBody().json(expected)
+        response.shouldHaveJsonBody(expected)
+      }
+    }
+
+    describe("PUT /todos/{id}") {
+      it("updates existing entity") {
+        val id = ObjectId.get()
+        val toModify = Todo(title = "Plz update me")
+        val existing = Todo(title = "Existing", id = id)
+        val modified = toModify.copy(id = existing.id)
+        val expected = modified.toJson(root)
+        coEvery { repository.findById(id) } returns existing
+        coEvery { repository.save(any()) } returns modified
+
+        val response = webTestClient
+          .put()
+          .uri("$root/${existing.id}")
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(toModify)
+          .exchange()
+
+        response.expectStatus().isOk
+        response.shouldHaveJsonBody(expected)
+        coVerify { repository.save(modified) }
+      }
+      it("ignores missing entity") {
+        val toModify = Todo(title = "Plz update me")
+        val id = ObjectId.get()
+        coEvery { repository.findById(id) } returns null
+
+        val response = webTestClient
+          .put()
+          .uri("$root/${id}")
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(toModify)
+          .exchange()
+
+        response.expectStatus().isNotFound
+        coVerify(exactly = 0) { repository.save(any()) }
       }
     }
 
@@ -86,39 +128,21 @@ class ControllerTest(private val webTestClient: WebTestClient,
 
     describe("GET /todos") {
       it("finds existing entities") {
-        val existing = listOf(
-            Todo(ObjectId("5fbab5d2f420c43153a207ef"), "First"),
-            Todo(ObjectId("5fbab5d2f420c43153a207f0"), "Second"),
-            Todo(ObjectId("5fbab5d2f420c43153a207f1"), "Third"),
-        )
-        @Language("JSON")
+        val existing1 = Todo(ObjectId.get(), "First")
+        val existing2 = Todo(ObjectId.get(), "Second")
+        val existing3 = Todo(ObjectId.get(), "Third")
         val expected = """[
-          {
-            "title": "First",
-            "_links": {
-              "self": {
-                "href": "/api/v1/todos/5fbab5d2f420c43153a207ef"
-              }
-            }
-          },
-          {
-            "title": "Second",
-            "_links": {
-              "self": {
-                "href": "/api/v1/todos/5fbab5d2f420c43153a207f0"
-              }
-            }
-          },
-          {
-            "title": "Third",
-            "_links": {
-              "self": {
-                "href": "/api/v1/todos/5fbab5d2f420c43153a207f1"
-              }
-            }
-          }
+          ${existing1.toJson(root)},
+          ${existing2.toJson(root)},
+          ${existing3.toJson(root)}
         ]"""
-        coEvery { repository.findAll() } returns existing.asFlow()
+        coEvery { repository.findAll() } coAnswers {
+          flow {
+            emit(existing1)
+            emit(existing2)
+            emit(existing3)
+          }
+        }
 
         val response = webTestClient
           .get()
@@ -126,8 +150,25 @@ class ControllerTest(private val webTestClient: WebTestClient,
           .exchange()
 
         response.expectStatus().isOk
-        response.expectBody().json(expected)
+        response.shouldHaveJsonBody(expected)
       }
     }
   }
 })
+
+@Language("JSON")
+private fun Todo.toJson(root: String) =
+  """{
+  "title": "$title",
+  "_links": {
+    "self": {
+      "href": "$root/$id"
+    }
+  }
+}"""
+
+private fun WebTestClient.ResponseSpec.shouldHaveJsonBody(@Language("JSON") expected: String) {
+  expectBody<String>().consumeWith {
+    it.responseBody shouldMatchJson expected
+  }
+}

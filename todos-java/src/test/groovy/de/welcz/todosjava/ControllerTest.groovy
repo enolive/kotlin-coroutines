@@ -85,6 +85,57 @@ class ControllerTest extends Specification {
     1 * repository.save(toInsert) >> Mono.just(saved)
   }
 
+  def "PUT /todos/{id}"() {
+    given: "a todo to modify"
+    def toModify = new Todo(title: "Plz modify this")
+    and: "an id"
+    def id = new ObjectId("5fbab3f8d5189026901ffb78")
+    and: "an existing todo"
+    def existing = new Todo(id: id, title: "Existing")
+    and: "a modified todo"
+    def modified = new Todo(id: existing.id, title: toModify.title)
+    and: "an expected response"
+    @Language("JSON")
+    def expected = """{"title":"Plz modify this","_links":{"self":{"href":"/api/v1/todos/5fbab3f8d5189026901ffb78"}}}"""
+
+    when: "API is called"
+    def response = webTestClient.put()
+                                .uri("/api/v1/todos/$id")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(toModify)
+                                .exchange()
+
+    then: "status is ok"
+    response.expectStatus().isOk()
+    and: "created entity was returned"
+    response.expectBody().json(expected)
+    and: "entity exists"
+    1 * repository.findById(id) >> Mono.just(existing)
+    and: "entity was saved"
+    1 * repository.save(modified) >> Mono.just(modified)
+  }
+
+  def "PUT /todos/{id} ignores missing entity"() {
+    given: "a todo to modify"
+    def toModify = new Todo(title: "Plz modify this")
+    and: "an id"
+    def id = new ObjectId("5fbab3f8d5189026901ffb78")
+
+    when: "API is called"
+    def response = webTestClient.put()
+                                .uri("/api/v1/todos/$id")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(toModify)
+                                .exchange()
+
+    then: "status is not found"
+    response.expectStatus().isNotFound()
+    and: "entity does not exist"
+    1 * repository.findById(id) >> Mono.empty()
+    and: "entity was not saved"
+    0 * repository.save(*_)
+  }
+
   def "DELETE /todos/{id}"() {
     given: "an id"
     def id = ObjectId.get()

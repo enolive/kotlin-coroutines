@@ -17,25 +17,32 @@ const val root = "/api/v1/todos"
 class Controller(private val repository: TodoRepository) {
   @GetMapping("{id}")
   suspend fun getTodo(@PathVariable id: ObjectId) =
-      repository.findById(id)?.withSelfLink()
-          ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+    repository.findById(id)?.withSelfLink()
+      ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
   @PostMapping
-  suspend fun saveTodo(@RequestBody toSave: Todo) =
-      repository.save(toSave).withSelfLink().wrappedInCreatedResponse()
+  suspend fun createTodo(@RequestBody toSave: Todo) =
+    repository.save(toSave).withSelfLink().wrappedInCreatedResponse()
+
+  @PutMapping("{id}")
+  suspend fun updateTodo(@PathVariable id: ObjectId, @RequestBody toModify: Todo) =
+    repository.findById(id)
+      ?.let { repository.save(toModify.copy(id = id)) }
+      ?.withSelfLink()
+      ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
 
   @ResponseStatus(HttpStatus.NO_CONTENT)
   @DeleteMapping("{id}")
   suspend fun deleteTodo(@PathVariable id: ObjectId) =
-      repository.deleteById(id)
+    repository.deleteById(id)
 
   @GetMapping
   fun getAllTodos() =
-      repository.findAll().map { it.withSelfLink() }
+    repository.findAll().map { it.withSelfLink() }
 
   private fun Todo.withSelfLink() =
-      EntityModel.of(this, Link.of("$root/$id").withSelfRel())
+    EntityModel.of(this, Link.of("$root/$id").withSelfRel())
 
   private fun EntityModel<Todo>.wrappedInCreatedResponse() =
-      ResponseEntity.created(URI("$root/${content!!.id}")).body(this)
+    ResponseEntity.created(URI("$root/${content!!.id}")).body(this)
 }
