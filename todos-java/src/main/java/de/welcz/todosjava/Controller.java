@@ -42,12 +42,7 @@ public class Controller {
   public Mono<EntityModel<Todo>> updateTodo(@PathVariable ObjectId id, @RequestBody Todo toSave) {
     return repository.findById(id)
                      .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND)))
-                     .then(Mono.fromCallable(() -> {
-                       final var modified = new Todo();
-                       modified.setId(id);
-                       modified.setTitle(toSave.getTitle());
-                       return modified;
-                     }))
+                     .then(Mono.fromCallable(() -> toSave.withId(id)))
                      .flatMap(repository::save)
                      .map(this::withHateoas);
   }

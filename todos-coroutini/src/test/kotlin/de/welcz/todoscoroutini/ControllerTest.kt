@@ -16,13 +16,15 @@ import org.springframework.http.MediaType
 import org.springframework.test.web.reactive.server.WebTestClient
 import org.springframework.test.web.reactive.server.expectBody
 
+@Suppress("JsonStandardCompliance")
+private const val root = "/api/v1/todos"
+
 @WebFluxTest(controllers = [Controller::class])
 @EnableHypermediaSupport(type = [EnableHypermediaSupport.HypermediaType.HAL])
 class ControllerTest(
   private val webTestClient: WebTestClient,
   @MockkBean private val repository: TodoRepository
 ) : DescribeSpec({
-  val root = "/api/v1/todos"
 
   beforeAny { clearMocks(repository) }
 
@@ -31,7 +33,7 @@ class ControllerTest(
       it("finds existing entity") {
         val id = ObjectId.get()
         val todo = Todo(id, "Learn Kotlin")
-        val expected = todo.toJson(root)
+        val expected = todo.toJson()
         coEvery { repository.findById(id) } returns todo
 
         val response = webTestClient
@@ -43,7 +45,7 @@ class ControllerTest(
         response.shouldHaveJsonBody(expected)
       }
       it("returns not found for not existing entities") {
-        val id = ObjectId("5fbab5d2f420c43153a207f1")
+        val id = ObjectId.get()
         coEvery { repository.findById(id) } returns null
 
         val response = webTestClient
@@ -59,7 +61,7 @@ class ControllerTest(
       it("saves new entity") {
         val toInsert = Todo(title = "Plz save me")
         val saved = toInsert.copy(id = ObjectId.get())
-        val expected = saved.toJson(root)
+        val expected = saved.toJson()
         coEvery { repository.save(toInsert) } returns saved
 
         val response = webTestClient
@@ -80,7 +82,7 @@ class ControllerTest(
         val toModify = Todo(title = "Plz update me")
         val existing = Todo(title = "Existing", id = id)
         val modified = toModify.copy(id = existing.id)
-        val expected = modified.toJson(root)
+        val expected = modified.toJson()
         coEvery { repository.findById(id) } returns existing
         coEvery { repository.save(any()) } returns modified
 
@@ -132,9 +134,9 @@ class ControllerTest(
         val existing2 = Todo(ObjectId.get(), "Second")
         val existing3 = Todo(ObjectId.get(), "Third")
         val expected = """[
-          ${existing1.toJson(root)},
-          ${existing2.toJson(root)},
-          ${existing3.toJson(root)}
+          ${existing1.toJson()},
+          ${existing2.toJson()},
+          ${existing3.toJson()}
         ]"""
         coEvery { repository.findAll() } coAnswers {
           flow {
@@ -157,7 +159,7 @@ class ControllerTest(
 })
 
 @Language("JSON")
-private fun Todo.toJson(root: String) =
+private fun Todo.toJson() =
   """{
   "title": "$title",
   "_links": {
