@@ -133,11 +133,20 @@ class ControllerTest(
         val existing1 = Todo(ObjectId.get(), "First")
         val existing2 = Todo(ObjectId.get(), "Second")
         val existing3 = Todo(ObjectId.get(), "Third")
-        val expected = """[
-          ${existing1.toJson()},
-          ${existing2.toJson()},
-          ${existing3.toJson()}
-        ]"""
+        @Language("json")
+        val expected = """{
+          "_embedded": {
+            "todoList": [
+              ${existing1.toJson()},
+              ${existing2.toJson()},
+              ${existing3.toJson()}
+            ]
+          },
+          "_links": {
+            "self": {"href": "$root"}
+          }
+        }
+        """.trimIndent()
         coEvery { repository.findAll() } coAnswers {
           flow {
             emit(existing1)

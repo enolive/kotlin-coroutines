@@ -1,9 +1,13 @@
 package de.welcz.todoscoroutini
 
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.reactive.awaitSingle
 import org.bson.types.ObjectId
+import org.springframework.hateoas.CollectionModel
 import org.springframework.hateoas.EntityModel
-import org.springframework.hateoas.Link
+import org.springframework.hateoas.server.reactive.WebFluxLinkBuilder.linkTo
+import org.springframework.hateoas.server.reactive.WebFluxLinkBuilder.methodOn
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -37,11 +41,28 @@ class Controller(private val repository: TodoRepository) {
     repository.deleteById(id)
 
   @GetMapping
-  fun getAllTodos() =
-    repository.findAll().map { it.withSelfLink() }
+  suspend fun getAllTodos(): CollectionModel<EntityModel<Todo>> =
+    repository
+      .findAll()
+      .map { it.withSelfLink() }
+      .toList()
+      .withSelfLink()
 
-  private fun Todo.withSelfLink() =
-    EntityModel.of(this, Link.of("$root/$id").withSelfRel())
+  private suspend fun <T> List<T>.withSelfLink(): CollectionModel<T> {
+    val selfLink = linkTo(methodOn(Controller::class.java).getAllTodos())
+      .withSelfRel()
+      .toMono()
+      .awaitSingle()
+    return CollectionModel.of(this.toList(), selfLink)
+  }
+
+  private suspend fun Todo.withSelfLink(): EntityModel<Todo> {
+    val selfLink = linkTo(methodOn(Controller::class.java).getTodo(id!!))
+      .withSelfRel()
+      .toMono()
+      .awaitSingle()
+    return EntityModel.of(this, selfLink)
+  }
 
   private fun EntityModel<Todo>.wrappedInCreatedResponse() =
     ResponseEntity.created(URI("$root/${content!!.id}")).body(this)
