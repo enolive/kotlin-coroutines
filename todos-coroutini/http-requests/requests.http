@@ -16,3 +16,12 @@ GET http://localhost:8080/api/v1/todos/5fbac535470d842f992469d5
 ###
 
 DELETE http://localhost:8080/api/v1/todos/5fbac535470d842f992469d5
+
+###
+
+PUT http://localhost:8080/api/v1/todos/601e53d75934a624ee9aa97e
+Content-Type: application/json
+
+{
+  "title": "Modified!"
+}

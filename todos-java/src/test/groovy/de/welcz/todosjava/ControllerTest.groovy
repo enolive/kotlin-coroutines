@@ -44,7 +44,7 @@ class ControllerTest extends Specification {
     1 * repository.findById(id) >> Mono.just(todo)
   }
 
-  def "GET /todos/{id} returns not found"() {
+  def "GET /todos/{id} returns no content"() {
     given: "an id"
     def id = ObjectId.get()
 
@@ -53,8 +53,8 @@ class ControllerTest extends Specification {
                                 .uri("/api/v1/todos/$id")
                                 .exchange()
 
-    then: "status is not found"
-    response.expectStatus().isNotFound()
+    then: "status is no content"
+    response.expectStatus().isNoContent()
     and: "repository returned empty response"
     1 * repository.findById(id) >> Mono.empty()
   }
@@ -128,8 +128,8 @@ class ControllerTest extends Specification {
                                 .bodyValue(toModify)
                                 .exchange()
 
-    then: "status is not found"
-    response.expectStatus().isNotFound()
+    then: "status is no content"
+    response.expectStatus().isNoContent()
     and: "entity does not exist"
     1 * repository.findById(id) >> Mono.empty()
     and: "entity was not saved"

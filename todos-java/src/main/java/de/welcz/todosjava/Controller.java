@@ -28,7 +28,7 @@ public class Controller {
   public Mono<EntityModel<Todo>> getTodo(@PathVariable ObjectId id) {
     return repository.findById(id)
                      .map(this::withHateoas)
-                     .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND)));
+                     .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NO_CONTENT)));
   }
 
   @PostMapping
@@ -41,7 +41,7 @@ public class Controller {
   @PutMapping("{id}")
   public Mono<EntityModel<Todo>> updateTodo(@PathVariable ObjectId id, @RequestBody Todo toSave) {
     return repository.findById(id)
-                     .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NOT_FOUND)))
+                     .switchIfEmpty(Mono.error(new ResponseStatusException(HttpStatus.NO_CONTENT)))
                      .then(Mono.fromCallable(() -> toSave.withId(id)))
                      .flatMap(repository::save)
                      .map(this::withHateoas);

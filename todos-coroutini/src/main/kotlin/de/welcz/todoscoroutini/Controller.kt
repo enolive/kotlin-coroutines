@@ -22,7 +22,7 @@ class Controller(private val repository: TodoRepository) {
   @GetMapping("{id}")
   suspend fun getTodo(@PathVariable id: ObjectId) =
     repository.findById(id)?.withSelfLink()
-      ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+      ?: throw ResponseStatusException(HttpStatus.NO_CONTENT)
 
   @PostMapping
   suspend fun createTodo(@RequestBody toSave: Todo) =
@@ -33,7 +33,7 @@ class Controller(private val repository: TodoRepository) {
     repository.findById(id)
       ?.let { repository.save(toModify.copy(id = id)) }
       ?.withSelfLink()
-      ?: throw ResponseStatusException(HttpStatus.NOT_FOUND)
+      ?: throw ResponseStatusException(HttpStatus.NO_CONTENT)
 
   @ResponseStatus(HttpStatus.NO_CONTENT)
   @DeleteMapping("{id}")

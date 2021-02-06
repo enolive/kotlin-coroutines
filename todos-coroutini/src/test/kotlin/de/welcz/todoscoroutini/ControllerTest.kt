@@ -53,7 +53,7 @@ class ControllerTest(
           .uri("$root/$id")
           .exchange()
 
-        response.expectStatus().isNotFound
+        response.expectStatus().isNoContent
       }
     }
 
@@ -109,7 +109,7 @@ class ControllerTest(
           .bodyValue(toModify)
           .exchange()
 
-        response.expectStatus().isNotFound
+        response.expectStatus().isNoContent
         coVerify(exactly = 0) { repository.save(any()) }
       }
     }
